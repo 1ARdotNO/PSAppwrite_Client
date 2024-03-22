@@ -15,7 +15,6 @@ function Get-PSACAccount {
     https://appwrite.io/docs/references/cloud/client-rest/account#get
     #>
 }
-
 function New-PSACAccount {
     <#
     .SYNOPSIS
@@ -26,7 +25,6 @@ function New-PSACAccount {
     https://appwrite.io/docs/references/cloud/client-rest/account#create
     #>
 }
-
 function Update-PSACEmail {
     <#
     .SYNOPSIS
@@ -37,7 +35,6 @@ function Update-PSACEmail {
     https://appwrite.io/docs/references/cloud/client-rest/account#updateEmail
     #>
 }
-
 function Get-PSACIdentity {
     <#
     .SYNOPSIS
@@ -71,7 +68,6 @@ function New-PSACJWT {
     #>
     "NOT IMPLEMENTED"
 }
-
 function Get-PSACLogs {
     <#
     .SYNOPSIS
@@ -83,7 +79,6 @@ function Get-PSACLogs {
     #>
     "NOT IMPLEMENTED"
 }
-
 function Set-PSACName {
     <#
     .SYNOPSIS
@@ -95,7 +90,6 @@ function Set-PSACName {
     #>
     "NOT IMPLEMENTED"
 }
-
 function Set-PSACPassword {
     <#
     .SYNOPSIS
@@ -181,6 +175,50 @@ function Remove-PSACSessions {
     Delete all sessions from the user account and remove any sessions cookies from the end client.
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#deleteSessions
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACAnonymousSession {
+    <#
+    .SYNOPSIS
+    POST /account/sessions/anonymous
+    .DESCRIPTION
+    Use this endpoint to allow a new user to register an anonymous account in your project. This route will also create a new session for the user. To allow the new user to convert an anonymous account to a normal account, you need to update its email and password or create an OAuth2 session.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createAnonymousSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACEmailSession {
+    <#
+    .SYNOPSIS
+    POST /account/sessions/email
+    .DESCRIPTION
+    Allow the user to login into their account by providing a valid email and password combination. This route will create a new session for the user. A user is limited to 10 active sessions at a time by default.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createEmailSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACMagicURLSession {
+    <#
+    .SYNOPSIS
+    POST /account/sessions/magic-url
+    .DESCRIPTION
+    Sends the user an email with a secret key for creating a session. If the provided user ID has not been registered, a new user will be created. When the user clicks the link in the email, the user is redirected back to the URL you provided with the secret key and userId values attached to the URL query string. Use the query string parameters to submit a request to the PUT /account/sessions/magic-url endpoint to complete the login process. The link sent to the user's email address is valid for 1 hour. If you are on a mobile device you can leave the URL parameter empty, so that the login completion will be handled by your Appwrite instance by default. A user is limited to 10 active sessions at a time by default.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createMagicURLSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACMagicURLSessionConfirmation {
+    <#
+    .SYNOPSIS
+    PUT /account/sessions/magic-url
+    .DESCRIPTION
+    Use this endpoint to complete creating the session with the Magic URL. Both the userId and secret arguments will be passed as query parameters to the redirect URL you have provided when sending your request to the POST /account/sessions/magic-url endpoint. Please note that in order to avoid a Redirect Attack the only valid redirect URLs are the ones from domains you have set when adding your platforms in the console interface.Sends the user an email with a secret key for creating a session. If the provided user ID has not been registered, a new user will be created. When the user clicks the link in the email, the user is redirected back to the URL you provided with the secret key and userId values attached to the URL query string. Use the query string parameters to submit a request to the PUT /account/sessions/magic-url endpoint to complete the login process. The link sent to the user's email address is valid for 1 hour. If you are on a mobile device you can leave the URL parameter empty, so that the login completion will be handled by your Appwrite instance by default. A user is limited to 10 active sessions at a time by default.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#updateMagicURLSession
     #>
     "NOT IMPLEMENTED"
 }
