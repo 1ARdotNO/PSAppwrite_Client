@@ -1,8 +1,38 @@
 
 
-function Invoke-PSAC {
-    $URL,
-    $PROJECT
+function Invoke-PSACREST {
+    <#
+    .SYNOPSIS
+    blabnla
+    .DESCRIPTION
+    Invokethe API
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#get
+    #>
+    param(
+        $URL = $ENV:APPWRITEURL,
+        $PROJECT = $ENV:APPWRITEPROJECT,
+        #$APPWRITESESSION = $GLOBAL:APPWRITESESSION,
+        [Parameter(mandatory = $true)]$METHOD,
+        $PATH,
+        $BODY,
+        [switch]$CREATESESSION
+    )
+    #Define SPLATT's
+    if ($CREATESESSION) { $SESSIONSPLATT = @{sessionvariable = "global:APPWRITESESSION" } }else { $SESSIONSPLATT = @{ websession= $global:APPWRITESESSION } }
+    $URISPLATT = @{URI = "$URL$PATH" }
+    $HTTPMETHOPSPLATT = @{method = $METHOD }
+    if ($BODY) { $BODDYSPLATT = @{body = $BODY } }else{$BODDYSPLATT = @{body = ""}}
+    #Set headers
+    $HEADERS = @{
+        "X-Appwrite-Project" = $PROJECT
+    }
+    Invoke-restmethod @SESSIONSPLATT @URISPLATT @HTTPMETHOPSPLATT @BODDYSPLATT -Headers $HEADERS -ContentType "application/json" -SkipHttpErrorCheck
+    
+    #SET URL AND PROJECT
+    $GLOBAL:APPWRITEURL=$URL
+    $GLOBAL:APPWRITEPROJECT=$PROJECT
+    #if ($CREATESESSION) { $GLOBAL:APPWRITESESSION = $APPWRITESESSION }
 }
 
 function Get-PSACAccount {
@@ -14,6 +44,11 @@ function Get-PSACAccount {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#get
     #>
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT
+    )
+    Invoke-PSACREST -PATH /account -METHOD GET -PROJECT $PROJECT -URL $URL
 }
 function New-PSACAccount {
     <#
@@ -24,6 +59,20 @@ function New-PSACAccount {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#create
     #>
+    param(
+        [Parameter(mandatory = $true)]$email,
+        [Parameter(mandatory = $true)]$password,
+        [Parameter(mandatory = $true)]$URL,
+        [Parameter(mandatory = $true)]$PROJECT,
+        $name
+    )
+    $BODY = @{
+        email    = $email
+        password = $password
+        userId = (new-guid).guid.replace("-","")
+        name = $name
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /account -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $BODY -CREATESESSION
 }
 function Update-PSACEmail {
     <#
@@ -66,7 +115,11 @@ function New-PSACJWT {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#createJWT
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT
+    )
+    Invoke-PSACREST -PATH /account/jwt -METHOD POST -PROJECT $PROJECT -URL $URL
 }
 function Get-PSACLogs {
     <#
@@ -99,7 +152,17 @@ function Set-PSACPassword {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#updatePassword
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        $newpassword,
+        $oldpassword
+    )
+    $BODY=@{
+        password=$newpassword
+        oldPassword=$oldpassword
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /account/prefs -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
 }
 function Set-PSACPhone {
     <#
@@ -121,7 +184,11 @@ function Get-PSACPreferences {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#getPrefs
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT
+    )
+    Invoke-PSACREST -PATH /account/prefs -METHOD GET -PROJECT $PROJECT -URL $URL
 }
 function Set-PSACPreferences {
     <#
@@ -132,7 +199,15 @@ function Set-PSACPreferences {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#updatePrefs
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        $PREFS
+    )
+    $BODY=@{
+        prefs=$PREFS
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /account/prefs -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
 }
 function New-PSACPasswordRecovery {
     <#
@@ -198,7 +273,18 @@ function New-PSACEmailSession {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#createEmailSession
     #>
-    "NOT IMPLEMENTED"
+    param(
+        [Parameter(mandatory = $true)]$email,
+        [Parameter(mandatory = $true)]$password,
+        #[Parameter(mandatory = $true)]$APPWRITESESSION,
+        [Parameter(mandatory = $true)]$URL,
+        [Parameter(mandatory = $true)]$PROJECT
+    )
+    $BODY = @{
+        email    = $email
+        password = $password
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /account/sessions/email -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $BODY -CREATESESSION
 }
 function New-PSACMagicURLSession {
     <#
