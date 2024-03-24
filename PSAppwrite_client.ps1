@@ -34,7 +34,9 @@ function Invoke-PSACREST {
     $GLOBAL:APPWRITEPROJECT=$PROJECT
     #if ($CREATESESSION) { $GLOBAL:APPWRITESESSION = $APPWRITESESSION }
 }
-
+############################
+#####################ACCOUNT
+############################
 function Get-PSACAccount {
     <#
     .SYNOPSIS
@@ -430,4 +432,154 @@ function New-PSACEmailVerificationConfirmation {
     https://appwrite.io/docs/references/cloud/client-rest/account#updateVerification
     #>
     "NOT IMPLEMENTED"
+}
+function New-PSACPhoneVerification {
+    <#
+    .SYNOPSIS
+    POST /account/verification/phone
+    .DESCRIPTION
+    Use this endpoint to send a verification SMS to the currently logged in user. This endpoint is meant for use after updating a user's phone number using the accountUpdatePhone endpoint. Learn more about how to complete the verification process. The verification code sent to the user's phone number is valid for 15 minutes.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createPhoneVerification
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACPhoneVerificationConfirmation {
+    <#
+    .SYNOPSIS
+    PUT /account/verification/phone
+    .DESCRIPTION
+    Use this endpoint to complete the user phone verification process. Use the userId and secret that were sent to your user's phone number to verify the user email ownership. If confirmed this route will return a 200 status code.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#updatePhoneVerification
+    #>
+    "NOT IMPLEMENTED"
+}
+
+#############################
+#####################Database
+#############################
+function Get-PSACDocument {
+    <#
+    .SYNOPSIS
+    GET /databases/{databaseId}/collections/{collectionId}/documents
+    .DESCRIPTION
+    Get a list of all the user's documents in a given collection. You can use the query params to filter your results.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/databases#listDocuments
+    #>
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$collectionid,
+        [Parameter(mandatory = $true)]$databaseid,
+        $documentid
+    )
+    if($documentid){
+        #if sessionid specified, get that one
+        Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents/$documentid -METHOD GET -PROJECT $PROJECT -URL $URL
+    }else{
+        #If no sessionid specified, get all
+        Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents -METHOD GET -PROJECT $PROJECT -URL $URL
+
+    }
+}
+function New-PSACDocument {
+    <#
+    .SYNOPSIS
+    POST /databases/{databaseId}/collections/{collectionId}/documents
+    .DESCRIPTION
+    Create a new Document. Before using this route, you should create a new collection resource using either a server integration API or directly from your database console.
+    .LINK
+    https://appwrite.io/docs/references/1.5.x/client-rest/databases#createDocument
+    #>
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$collectionid,
+        [Parameter(mandatory = $true)]$databaseid,
+        $documentid=$((new-guid).guid.replace("-","")),
+        [Parameter(mandatory = $true)]$data,
+        $rawpermissions,
+        $readpermission,
+        $updatepermission,
+        $deletepermission,
+        $writepermission
+    )
+    $body=@{
+        documentId=$documentid
+        data=$data
+    }
+    if($rawpermissions){$body | Add-Member -MemberType NoteProperty -Name permissions -Value $rawpermissions}
+    #permissions
+    elseif($readpermission -or $updatepermission -or $deletepermission -or $writepermission){
+        $permissions=@()
+        if($readpermission){$permissions+=$readpermission | ForEach-Object {'read('+'"'+$_+'"'+')'}}
+        if($updatepermission){$permissions+=$updatepermission | ForEach-Object {'update('+'"'+$_+'"'+')'}}
+        if($deletepermission){$permissions+=$deletepermission | ForEach-Object {'delete('+'"'+$_+'"'+')'}}
+        if($writepermission){$permissions+=$writepermission | ForEach-Object {'write('+'"'+$_+'"'+')'}}
+        #add to body
+        $body | Add-Member -MemberType NoteProperty -Name permissions -Value $permissions
+    }
+    $GLOBAL:DEBUGBODY=$body
+    Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $($body|ConvertTo-Json)
+}
+function Update-PSACDocument {
+    <#
+    .SYNOPSIS
+    PATCH /databases/{databaseId}/collections/{collectionId}/documents/{documentId}
+    .DESCRIPTION
+    Update a document by its unique ID. Using the patch method you can pass only specific fields that will get updated.
+    .LINK
+    https://appwrite.io/docs/references/1.5.x/client-rest/databases#updateDocument
+    #>
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$collectionid,
+        [Parameter(mandatory = $true)]$databaseid,
+        $documentid,
+        [Parameter(mandatory = $true)]$data,
+        $rawpermissions,
+        $readpermission,
+        $updatepermission,
+        $deletepermission,
+        $writepermission
+    )
+    $body=@{
+        documentId=$documentid
+        data=$data
+    }
+    if($rawpermissions){$body | Add-Member -MemberType NoteProperty -Name permissions -Value $rawpermissions}
+    #permissions
+    elseif($readpermission -or $updatepermission -or $deletepermission -or $writepermission){
+        $permissions=@()
+        if($readpermission){$permissions+=$readpermission | ForEach-Object {'read('+'"'+$_+'"'+')'}}
+        if($updatepermission){$permissions+=$updatepermission | ForEach-Object {'update('+'"'+$_+'"'+')'}}
+        if($deletepermission){$permissions+=$deletepermission | ForEach-Object {'delete('+'"'+$_+'"'+')'}}
+        if($writepermission){$permissions+=$writepermission | ForEach-Object {'write('+'"'+$_+'"'+')'}}
+        #add to body
+        $body | Add-Member -MemberType NoteProperty -Name permissions -Value $permissions
+    }
+    Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents/$documentid -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $($body|ConvertTo-Json)
+}
+function Remove-PSACDocument {
+    <#
+    .SYNOPSIS
+    DELETE /databases/{databaseId}/collections/{collectionId}/documents/{documentId}
+    .DESCRIPTION
+    Delete a document by its unique ID.
+    .LINK
+    https://appwrite.io/docs/references/1.5.x/client-rest/databases#deleteDocument
+    #>
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$collectionid,
+        [Parameter(mandatory = $true)]$databaseid,
+        $documentid
+    )
+    write-debug "DELETING /databases/$databaseid/collections/$collectionid/documents/$documentid"
+    Invoke-PSACREST -PATH "/databases/$databaseid/collections/$collectionid/documents/$documentid" -METHOD DELETE -PROJECT $PROJECT -URL $URL
+
 }
