@@ -162,7 +162,7 @@ function Set-PSACPassword {
         password=$newpassword
         oldPassword=$oldpassword
     } | ConvertTo-Json
-    Invoke-PSACREST -PATH /account/prefs -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
+    Invoke-PSACREST -PATH /account/password -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
 }
 function Set-PSACPhone {
     <#
