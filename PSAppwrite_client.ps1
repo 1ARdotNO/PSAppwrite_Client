@@ -141,7 +141,15 @@ function Set-PSACName {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#updateName
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$name
+    )
+    $BODY=@{
+        name=$name
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /account/name -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
 }
 function Set-PSACPassword {
     <#
@@ -155,7 +163,7 @@ function Set-PSACPassword {
     param(
         $URL=$GLOBAL:APPWRITEURL,
         $PROJECT=$GLOBAL:APPWRITEPROJECT,
-        $newpassword,
+        [Parameter(mandatory = $true)]$newpassword,
         $oldpassword
     )
     $BODY=@{
@@ -173,7 +181,17 @@ function Set-PSACPhone {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#updatePhone
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$password,
+        [Parameter(mandatory = $true)]$phone
+    )
+    $BODY=@{
+        password=$password
+        phone=$phone
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /account/phone -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
 }
 function Get-PSACPreferences {
     <#
@@ -202,7 +220,7 @@ function Set-PSACPreferences {
     param(
         $URL=$GLOBAL:APPWRITEURL,
         $PROJECT=$GLOBAL:APPWRITEPROJECT,
-        $PREFS
+        [Parameter(mandatory = $true)]$PREFS
     )
     $BODY=@{
         prefs=$PREFS
@@ -231,16 +249,27 @@ function New-PSACPasswordRecoveryConfirmation {
     #>
     "NOT IMPLEMENTED"
 }
-function Get-PSACSessions {
+function Get-PSACSession {
     <#
     .SYNOPSIS
     GET /account/sessions
     .DESCRIPTION
     Get the list of active sessions across different devices for the currently logged in user.
+    Combines Get session and List sessions
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#listSessions
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        $Sessionid
+    )
+    if($Sessionid){#if sessionid specified, get that one
+        Invoke-PSACREST -PATH /account/sessions/$Sessionid -METHOD GET -PROJECT $PROJECT -URL $URL
+    }else{
+        #If no sessionid specified, get all
+        Invoke-PSACREST -PATH /account/sessions -METHOD GET -PROJECT $PROJECT -URL $URL
+    }
 }
 function Remove-PSACSessions {
     <#
@@ -251,7 +280,17 @@ function Remove-PSACSessions {
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#deleteSessions
     #>
-    "NOT IMPLEMENTED"
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        $Sessionid
+    )
+    if($Sessionid){#if sessionid specified, get that one
+        Invoke-PSACREST -PATH /account/sessions/$Sessionid -METHOD DELETE -PROJECT $PROJECT -URL $URL
+    }else{
+        #If no sessionid specified, get all
+        Invoke-PSACREST -PATH /account/sessions -METHOD DELETE -PROJECT $PROJECT -URL $URL
+    }
 }
 function New-PSACAnonymousSession {
     <#
@@ -305,6 +344,90 @@ function New-PSACMagicURLSessionConfirmation {
     Use this endpoint to complete creating the session with the Magic URL. Both the userId and secret arguments will be passed as query parameters to the redirect URL you have provided when sending your request to the POST /account/sessions/magic-url endpoint. Please note that in order to avoid a Redirect Attack the only valid redirect URLs are the ones from domains you have set when adding your platforms in the console interface.Sends the user an email with a secret key for creating a session. If the provided user ID has not been registered, a new user will be created. When the user clicks the link in the email, the user is redirected back to the URL you provided with the secret key and userId values attached to the URL query string. Use the query string parameters to submit a request to the PUT /account/sessions/magic-url endpoint to complete the login process. The link sent to the user's email address is valid for 1 hour. If you are on a mobile device you can leave the URL parameter empty, so that the login completion will be handled by your Appwrite instance by default. A user is limited to 10 active sessions at a time by default.
     .LINK
     https://appwrite.io/docs/references/cloud/client-rest/account#updateMagicURLSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACOauth2Session {
+    <#
+    .SYNOPSIS
+    GET /account/sessions/oauth2/{provider}
+    .DESCRIPTION
+    Allow the user to login to their account using the OAuth2 provider of their choice. Each OAuth2 provider should be enabled from the Appwrite console first. Use the success and failure arguments to provide a redirect URL's back to your app when login is completed.
+    If there is already an active session, the new session will be attached to the logged-in account. If there are no active sessions, the server will attempt to look for a user with the same email address as the email received from the OAuth2 provider and attach the new session to the existing user. If no matching user is found - the server will create a new user.
+    A user is limited to 10 active sessions at a time by default.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createOAuth2Session
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACPhoneSession {
+    <#
+    .SYNOPSIS
+    POST /account/sessions/phone
+    .DESCRIPTION
+    Sends the user an SMS with a secret key for creating a session. If the provided user ID has not be registered, a new user will be created. Use the returned user ID and secret and submit a request to the PUT /account/sessions/phone endpoint to complete the login process. The secret sent to the user's phone is valid for 15 minutes.
+    A user is limited to 10 active sessions at a time by default.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createPhoneSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACPhoneSessionConfirmation {
+    <#
+    .SYNOPSIS
+    PUT /account/sessions/phone
+    .DESCRIPTION
+    Use this endpoint to complete creating a session with SMS. Use the userId from the createPhoneSession endpoint and the secret received via SMS to successfully update and confirm the phone session.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#updatePhoneSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACOauth2SessionRefresh {
+    <#
+    .SYNOPSIS
+    PATCH /account/sessions/{sessionId}
+    .DESCRIPTION
+    Access tokens have limited lifespan and expire to mitigate security risks. If session was created using an OAuth provider, this route can be used to "refresh" the access token.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#updateSession
+    #>
+    "NOT IMPLEMENTED"
+}
+function Set-PSACAccountDisabled {
+    <#
+    .SYNOPSIS
+    PATCH /account/status
+    .DESCRIPTION
+    Block the currently logged in user account. Behind the scene, the user record is not deleted but permanently blocked from any access. To completely delete a user, use the Users API instead.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-web/account#updateStatus
+    #>
+    param(
+        $URL=$GLOBAL:APPWRITEURL,
+        $PROJECT=$GLOBAL:APPWRITEPROJECT
+    )
+    Invoke-PSACREST -PATH /account/status -METHOD PATCH -PROJECT $PROJECT -URL $URL
+}
+function New-PSACEmailVerification {
+    <#
+    .SYNOPSIS
+    POST /account/verification
+    .DESCRIPTION
+    Use this endpoint to send a verification message to your user email address to confirm they are the valid owners of that address. Both the userId and secret arguments will be passed as query parameters to the URL you have provided to be attached to the verification email. The provided URL should redirect the user back to your app and allow you to complete the verification process by verifying both the userId and secret parameters. Learn more about how to complete the verification process. The verification link sent to the user's email address is valid for 7 days. Please note that in order to avoid a Redirect Attack, the only valid redirect URLs are the ones from domains you have set when adding your platforms in the console interface.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#createVerification
+    #>
+    "NOT IMPLEMENTED"
+}
+function New-PSACEmailVerificationConfirmation {
+    <#
+    .SYNOPSIS
+    PUT /account/verification
+    .DESCRIPTION
+    Use this endpoint to complete the user email verification process. Use both the userId and secret parameters that were attached to your app URL to verify the user email ownership. If confirmed this route will return a 200 status code.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/account#updateVerification
     #>
     "NOT IMPLEMENTED"
 }
