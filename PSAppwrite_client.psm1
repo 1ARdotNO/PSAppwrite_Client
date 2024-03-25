@@ -64,8 +64,8 @@ function New-PSACAccount {
     param(
         [Parameter(mandatory = $true)]$email,
         [Parameter(mandatory = $true)]$password,
-        $URL,
-        $PROJECT,
+        $URL = $ENV:APPWRITEURL,
+        $PROJECT = $ENV:APPWRITEPROJECT,
         $name
     )
     $BODY = @{
@@ -318,8 +318,8 @@ function New-PSACEmailSession {
         [Parameter(mandatory = $true)]$email,
         [Parameter(mandatory = $true)]$password,
         #[Parameter(mandatory = $true)]$APPWRITESESSION,
-        $URL,
-        $PROJECT
+        $URL = $ENV:APPWRITEURL,
+        $PROJECT = $ENV:APPWRITEPROJECT
     )
     $BODY = @{
         email    = $email
