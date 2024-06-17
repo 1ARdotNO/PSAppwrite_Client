@@ -1,5 +1,4 @@
 
-
 function Invoke-PSACREST {
     <#
     .SYNOPSIS
@@ -12,14 +11,21 @@ function Invoke-PSACREST {
     param(
         $URL = $ENV:APPWRITEURL,
         $PROJECT = $ENV:APPWRITEPROJECT,
-        #$APPWRITESESSION = $GLOBAL:APPWRITESESSION,
+        $APPWRITESESSION = $GLOBAL:APPWRITESESSION,
         [Parameter(mandatory = $true)]$METHOD,
         $PATH,
         $BODY,
-        [switch]$CREATESESSION
+        [switch]$CREATESESSION,
+        $outfile
     )
-    #Define SPLATT's
-    if ($CREATESESSION) { $SESSIONSPLATT = @{sessionvariable = "global:APPWRITESESSION" } }else { $SESSIONSPLATT = @{ websession= $global:APPWRITESESSION } }
+    #Define SPLATT's    
+    $sessionvariablename | out-file /workspaces/1ARSec/test.log
+    if ($CREATESESSION) { 
+        $SESSIONSPLATT = @{sessionvariable = "APPWRITESESSION" } 
+    }else { 
+        if($ENV:APPWRITESESSIONVARIABLENAME){$APPWRITESESSION=Get-Item $ENV:APPWRITESESSIONVARIABLENAME}
+        $SESSIONSPLATT = @{ websession= Get-Variable APPWRITESESSION -ValueOnly} 
+    }
     $URISPLATT = @{URI = "$URL$PATH" }
     $HTTPMETHOPSPLATT = @{method = $METHOD }
     if ($BODY) { $BODDYSPLATT = @{body = $BODY } }else{$BODDYSPLATT = @{body = ""}}
@@ -27,13 +33,28 @@ function Invoke-PSACREST {
     $HEADERS = @{
         "X-Appwrite-Project" = $PROJECT
     }
-    Invoke-restmethod @SESSIONSPLATT @URISPLATT @HTTPMETHOPSPLATT @BODDYSPLATT -Headers $HEADERS -ContentType "application/json" -SkipHttpErrorCheck
-    
-    #SET URL AND PROJECT
-    $GLOBAL:APPWRITEURL=$URL
-    $GLOBAL:APPWRITEPROJECT=$PROJECT
+    if($outfile){
+        Invoke-restmethod @SESSIONSPLATT @URISPLATT @HTTPMETHOPSPLATT @BODDYSPLATT -Headers $HEADERS -ContentType "application/json" -SkipHttpErrorCheck -OutFile $outfile
+    }
+    else{
+        Invoke-restmethod @SESSIONSPLATT @URISPLATT @HTTPMETHOPSPLATT @BODDYSPLATT -Headers $HEADERS -ContentType "application/json" -SkipHttpErrorCheck
+    }    
+   
+    if ($CREATESESSION) { 
+        #SET URL AND PROJECT
+        $GLOBAL:APPWRITEURL=$URL
+        $GLOBAL:APPWRITEPROJECT=$PROJECT
+        if ($CREATESESSION) {
+            if($ENV:APPWRITESESSIONVARIABLENAME){
+                Set-Item $ENV:APPWRITESESSIONVARIABLENAME -Value $APPWRITESESSION
+            }else{
+                $GLOBAL:APPWRITESESSION=$APPWRITESESSION
+            }
+        }
+    }
     #if ($CREATESESSION) { $GLOBAL:APPWRITESESSION = $APPWRITESESSION }
 }
+
 ############################
 #####################ACCOUNT
 ############################
@@ -325,7 +346,7 @@ function New-PSACEmailSession {
         email    = $email
         password = $password
     } | ConvertTo-Json
-    Invoke-PSACREST -PATH /account/sessions/email -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $BODY -CREATESESSION
+    Invoke-PSACREST -PATH /account/sessions/email -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $BODY -CREATESESSION 
 }
 function New-PSACMagicURLSession {
     <#
@@ -473,15 +494,27 @@ function Get-PSACDocument {
         $PROJECT=$GLOBAL:APPWRITEPROJECT,
         [Parameter(mandatory = $true)]$collectionid,
         [Parameter(mandatory = $true)]$databaseid,
-        $documentid
+        $documentid,
+        $queryStrings
     )
     if($documentid){
-        #if sessionid specified, get that one
+        #if documentid specified, get that one
         Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents/$documentid -METHOD GET -PROJECT $PROJECT -URL $URL
-    }else{
-        #If no sessionid specified, get all
-        Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents -METHOD GET -PROJECT $PROJECT -URL $URL
+    }elseif($queryStrings){
+        #If no documentid specified, get all but also use the query
+        
+        #build full query string
+        $querycount=0
+        $queryString=$queryStrings | ForEach-Object {
+            "queries[$querycount]=$($_ | ConvertTo-Json -Compress)&"
+            $querycount=$querycount+1
+        }
+        Write-Debug "/databases/$databaseid/collections/$collectionid/documents?$queryString"
 
+        Invoke-PSACREST -PATH "/databases/$databaseid/collections/$collectionid/documents?$queryString" -METHOD GET -PROJECT $PROJECT -URL $URL
+    }else{
+        #If no documentid specified, get all
+        Invoke-PSACREST -PATH /databases/$databaseid/collections/$collectionid/documents -METHOD GET -PROJECT $PROJECT -URL $URL
     }
 }
 function New-PSACDocument {
@@ -573,8 +606,8 @@ function Remove-PSACDocument {
     https://appwrite.io/docs/references/1.5.x/client-rest/databases#deleteDocument
     #>
     param(
-        $URL=$GLOBAL:APPWRITEURL,
-        $PROJECT=$GLOBAL:APPWRITEPROJECT,
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
         [Parameter(mandatory = $true)]$collectionid,
         [Parameter(mandatory = $true)]$databaseid,
         $documentid
@@ -582,4 +615,266 @@ function Remove-PSACDocument {
     write-debug "DELETING /databases/$databaseid/collections/$collectionid/documents/$documentid"
     Invoke-PSACREST -PATH "/databases/$databaseid/collections/$collectionid/documents/$documentid" -METHOD DELETE -PROJECT $PROJECT -URL $URL
 
+}
+
+#############################
+#####################Teams
+#############################
+
+function Get-PSACTeams {
+    <#
+    .SYNOPSIS
+    GET /teams
+    .DESCRIPTION
+    Get a list of all the teams in which the current user is a member. You can use the parameters to filter your results.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#list
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        $Teamid
+    )
+    if($Teamid){#if sessionid specified, get that one
+        Invoke-PSACREST -PATH /teams/$Teamid -METHOD GET -PROJECT $PROJECT -URL $URL
+    }else{
+        #If no sessionid specified, get all
+        Invoke-PSACREST -PATH /teams -METHOD GET -PROJECT $PROJECT -URL $URL
+    }
+}
+function New-PSACTeam {
+    <#
+    .SYNOPSIS
+    POST /teams
+    .DESCRIPTION
+    Create a new team. The user who creates the team will automatically be assigned as the owner of the team. Only the users with the owner role can invite new members, add new owners and delete or update the team.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#create
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        $teamId,
+        [Parameter(mandatory = $true)]$name
+    )
+    $BODY = @{
+        teamId = if($teamId){$teamId}else{(new-guid).guid.replace("-","")}
+        name = $name
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /teams -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $BODY
+}
+function Set-PSACTeamName {
+    <#
+    .SYNOPSIS
+    PUT /teams/{teamId}
+    .DESCRIPTION
+    PUT /teams/{teamId}
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#updateName
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        [Parameter(mandatory = $true)]$name
+    )
+    $BODY = @{
+        name = $name
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /teams/$teamId -METHOD PUT -PROJECT $PROJECT -URL $URL -BODY $BODY
+}
+function Remove-PSACTeam {
+    <#
+    .SYNOPSIS
+    DELETE /teams/{teamId}
+    .DESCRIPTION
+    Delete a team using its ID. Only team members with the owner role can delete the team.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#delete
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId
+    )
+    Invoke-PSACREST -PATH /teams/$teamId -METHOD DELETE -PROJECT $PROJECT -URL $URL
+}
+function Get-PSACTeamMember {
+    <#
+    .SYNOPSIS
+    GET /teams/{teamId}/memberships
+    .DESCRIPTION
+    Use this endpoint to list a team's members using the team's ID. All team members have read access to this endpoint.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#listMemberships
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        $membershipId
+    )
+    if($Teamid){#if sessionid specified, get that one
+        Invoke-PSACREST -PATH /teams/$teamId/memberships/$membershipId -METHOD GET -PROJECT $PROJECT -URL $URL
+
+    }else{
+        #If no sessionid specified, get all
+        Invoke-PSACREST -PATH /teams/$teamId/memberships -METHOD GET -PROJECT $PROJECT -URL $URL
+    }
+    
+}
+function New-PSACTeamMember {
+    <#
+    .SYNOPSIS
+    POST /teams/{teamId}/memberships
+    .DESCRIPTION
+    Invite a new member to join your team. Provide an ID for existing users, or invite unregistered users using an email or phone number. If initiated from a Client SDK, Appwrite will send an email or sms with a link to join the team to the invited user, and an account will be created for them if one doesn't exist. If initiated from a Server SDK, the new member will be added automatically to the team.
+    You only need to provide one of a user ID, email, or phone number. Appwrite will prioritize accepting the user ID > email > phone number if you provide more than one of these parameters.
+    Use the url parameter to redirect the user from the invitation email to your app. After the user is redirected, use the Update Team Membership Status endpoint to allow the user to accept the invitation to the team.
+    Please note that to avoid a Redirect Attack Appwrite will accept the only redirect URLs under the domains you have added as a platform on the Appwrite Console.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#createMembership
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        [Parameter(mandatory = $true)]$role="member",
+        [Parameter(mandatory = $true)]$email
+    )
+    $BODY = @{
+        name = $name
+        roles = $($role)
+        email = $email
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /teams/$teamId/memberships -METHOD POST -PROJECT $PROJECT -URL $URL -BODY $BODY
+}
+function New-PSACTeamMemberRole {
+    <#
+    .SYNOPSIS
+    PATCH /teams/{teamId}/memberships/{membershipId}
+    .DESCRIPTION
+    Modify the roles of a team member. Only team members with the owner role have access to this endpoint.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#updateMembership
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        [Parameter(mandatory = $true)]$role="member",
+        [Parameter(mandatory = $true)]$membershipId
+    )
+    $BODY = @{
+        roles = $($role)
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /teams/$teamId/memberships/$membershipId -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
+}
+function Remove-PSACTeamMember {
+    <#
+    .SYNOPSIS
+    DELETE /teams/{teamId}/memberships/{membershipId}
+    .DESCRIPTION
+    This endpoint allows a user to leave a team or for a team owner to delete the membership of any other team member. You can also use this endpoint to delete a user membership even if it is not accepted.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#deleteMembership
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        [Parameter(mandatory = $true)]$role="member",
+        [Parameter(mandatory = $true)]$membershipId
+    )
+    Invoke-PSACREST -PATH /teams/$teamId/memberships/$membershipId -METHOD DELETE -PROJECT $PROJECT -URL $URL
+}
+function Update-PSACTeamMemberStatus {
+    <#
+    .SYNOPSIS
+    PATCH /teams/{teamId}/memberships/{membershipId}/status
+    .DESCRIPTION
+    Use this endpoint to allow a user to accept an invitation to join a team after being redirected back to your app from the invitation email received by the user.
+    If the request is successful, a session for the user is automatically created.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#updateMembershipStatus
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        [Parameter(mandatory = $true)]$membershipId,
+        [Parameter(mandatory = $true)]$userId,
+        [Parameter(mandatory = $true)]$secret
+    )
+    $BODY = @{
+        userId = $userId
+        secret = $URL
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /teams/$teamId/memberships/$membershipId/status -METHOD PATCH -PROJECT $PROJECT -URL $URL -BODY $BODY
+}
+function Get-PSACTeamPreference {
+    <#
+    .SYNOPSIS
+    GET /teams/{teamId}/prefs
+    .DESCRIPTION
+    Get the team's shared preferences by its unique ID. If a preference doesn't need to be shared by all team members, prefer storing them in user preferences.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#updateMembershipStatus
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId
+    )
+    Invoke-PSACREST -PATH /teams/$teamId -METHOD GET -PROJECT $PROJECT -URL $URL
+}
+function Update-PSACTeamMemberStatus {
+    <#
+    .SYNOPSIS
+    PATCH /teams/{teamId}/memberships/{membershipId}/status
+    .DESCRIPTION
+    Use this endpoint to allow a user to accept an invitation to join a team after being redirected back to your app from the invitation email received by the user.
+    If the request is successful, a session for the user is automatically created.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/teams#updateMembershipStatus
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        [Parameter(mandatory = $true)]$teamId,
+        [Parameter(mandatory = $true)]$PREFS
+    )
+    $BODY = @{
+        prefs = $PREFS
+    } | ConvertTo-Json
+    Invoke-PSACREST -PATH /teams/$teamId -METHOD PUT -PROJECT $PROJECT -URL $URL -BODY $BODY
+}
+
+####AVATAR
+
+function Get-PSACUserAvatar {
+    <#
+    .SYNOPSIS
+    GET /avatars/initials
+    .DESCRIPTION
+Use this endpoint to show your user initials avatar icon on your website or app. By default, this route will try to print your logged-in user name or email initials. You can also overwrite the user name if you pass the 'name' parameter. If no name is given and no user is logged, an empty avatar will be returned.
+
+You can use the color and background params to change the avatar colors. By default, a random theme will be selected. The random theme will persist for the user's initials when reloading the same theme will always return for the same initials.
+
+When one dimension is specified and the other is 0, the image is scaled with preserved aspect ratio. If both dimensions are 0, the API provides an image at source quality. If dimensions are not specified, the default size of image returned is 100x100px.
+    .LINK
+    https://appwrite.io/docs/references/cloud/client-rest/avatars#getInitials
+    #>
+    param(
+        $URL=$ENV:APPWRITEURL,
+        $PROJECT=$ENV:APPWRITEPROJECT,
+        $outfile,
+        $width=25,
+        $height=25
+    )
+    $body=@{
+        width=$width
+        height=$height
+    }
+    Invoke-PSACREST -PATH /avatars/initials -METHOD GET -PROJECT $PROJECT -URL $URL -outfile $outfile -BODY $body
 }
